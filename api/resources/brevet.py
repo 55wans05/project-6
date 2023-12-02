@@ -8,12 +8,29 @@ from flask_restful import Resource
 from database.models import Brevet
 
 class BrevetResource(Resource):
-    def get(self, id):
-        pass
-    def put(self, id):
-        pass
-    def delete(self, id):
-        pass
+    def get(self, resource_id):
+        brevet = Brevet.objects.get(id=resource_id).to_json()
+        return Response(breveidt, mimetype="application/json", status=200)
+
+    def put(self, resource_id):
+        put_data = request.json
+        Brevet.objects.get(id=resource_id).update(**put_data)
+        response = {
+            "_id": resource_id,
+            "status": "ok"
+        }
+        return response, 200
+
+    def delete(self, resource_id):
+        put_data = request.json
+        Brevet.objects.get(id=resource_id).update(**put_data)
+
+        response = {
+            "_id": resource_id,
+            "status": "ok"
+        }
+        return response, 200
+
 # MongoEngine queries:
 # Brevet.objects() : similar to find_all. Returns a MongoEngine query
 # Brevet(...).save() : creates new brevet
