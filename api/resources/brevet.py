@@ -7,28 +7,32 @@ from flask_restful import Resource
 # You need to implement this in database/models.py
 from database.models import Brevet
 
-class BrevetResource(Resource):
-    def get(self, resource_id):
-        brevet = Brevet.objects.get(id=resource_id).to_json()
+class Brevet(Resource):
+    def get(self, id):
+        brevet = Brevet.objects.get(id=id).to_json()
+
         return Response(breveidt, mimetype="application/json", status=200)
 
-    def put(self, resource_id):
+    def put(self, id):
         put_data = request.json
-        Brevet.objects.get(id=resource_id).update(**put_data)
+        Brevet.objects.get(id=id).update(**put_data)
+
         response = {
-            "_id": resource_id,
+            "_id": id,
             "status": "ok"
         }
+
         return response, 200
 
-    def delete(self, resource_id):
+    def delete(self, id):
         put_data = request.json
-        Brevet.objects.get(id=resource_id).update(**put_data)
+        Brevet.objects.get(id=id).update(**put_data)
 
         response = {
-            "_id": resource_id,
+            "_id": id,
             "status": "ok"
         }
+
         return response, 200
 
 # MongoEngine queries:

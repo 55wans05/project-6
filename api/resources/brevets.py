@@ -7,20 +7,20 @@ from flask_restful import Resource
 # You need to implement this in database/models.py
 from database.models import Brevet
 
-class BrevetResource(Resource):
+class Brevets(Resource):
     def get(self):
         brevets_json = Brevet.objects().to_json()
         return Response(brevets_json, mimetype="application/json", status=200)
 
     def post(self):
         post_data = request.json
-
         db_result = Brevet(**post_data).save()
 
         response = {
-            "_id": response.id,
+            "_id": str(db_result.id),
             "status": "ok"
         }
+
         return response, 200
     
 # MongoEngine queries:

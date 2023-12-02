@@ -6,12 +6,11 @@ Replacement for RUSA ACP brevet time calculator
 
 import flask
 from flask import request
+import requests
 import arrow  # Replacement for datetime, based on moment.js
 import acp_times  # Brevet time calculations
-import config
 import os
 import json
-from pymongo import MongoClient
 
 import logging
 
@@ -19,37 +18,30 @@ import logging
 # Globals
 ###
 app = flask.Flask(__name__)
-CONFIG = config.configuration()
-
-client = MongoClient("mongodb://" + os.environ["DB_HOSTNAME"], 27017)
-db = client.mydb
+app.debug = True if "DEBUG" not in os.environ else os.environ["DEBUG"]
+port_num = 5000 if "PORT" not in os.environ else os.environ["PORT"]
+app.logger.setLevel(logging.DEBUG)
+API_ADDR = os.environ["API_ADDR"]
+API_PORT = os.environ["API_PORT"]
+API_URL = f"http://{API_ADDR}:{API_PORT}/api"
 
 ###
 # Backend functions
 ###
 
 def retrieve_data():
-    # Inspired by https://stackoverflow.com/questions/62295223/pymongo-query-to-get-the-latest-document-from-the-collection-in-mongodb-using-py
-    brevet = db.brevets.find().sort("_id", -1).limit(1)
+    brevets = requests.get(f"{API_URL}/brevets").json()
 
-    for i in brevet:
-        return i
+    if len(brevets) == 0:
+        return {}
 
-    return None
+    return brevets[-1]
 
 def set_data(data):
-
-    # I'm being explicit about the data structure here for ease of reading
-    data = {
-        "begin_date": data["begin_date"],
-        "brevet_distance": data["brevet_distance"],
-        "items": data["items"],
-    }
-
-    db.brevets.insert_one(data)
-    
+    data = requests.post(f"{API_URL}/brevets", json=data) 
     # Placeholder for error checking
     return True
+
 ###
 # Pages
 ###
@@ -100,14 +92,9 @@ def _calc_times():
 @app.route("/get-calc")
 def get_calc():
     brevet = retrieve_data()
-    if brevet is not None:
-        return flask.jsonify(
-            begin_date=brevet["begin_date"],
-            brevet_distance=brevet["brevet_distance"],
-            items=brevet["items"],
-        )
+    
+    return brevet, 200
 
-    return json.dumps({"success": False}), 404, {"ContentType": "application/json"}
 
 
 @app.route("/set-calc", methods=["POST"])
@@ -122,10 +109,9 @@ def set_brevet():
 
 #############
 
-app.debug = CONFIG.DEBUG
 if app.debug:
     app.logger.setLevel(logging.DEBUG)
 
 if __name__ == "__main__":
-    print("Opening for global access on port {}".format(CONFIG.PORT))
-    app.run(port=CONFIG.PORT, host="0.0.0.0")
+    print("Opening for global access on port {}".format(port_num))
+    app.run(port=port_num, host="0.0.0.0")

@@ -118,6 +118,14 @@
             var open_time_field = control.find("input[name='open']");
             var close_time_field = control.find("input[name='close']");
 
+            if (begin == "") {
+               return
+            }
+            if (km == "") {
+               open_time_field.val("");
+               close_time_field.val("");
+               return
+            }
             $.getJSON(TIME_CALC_URL, { km: km, dist: dist, begin: begin }).done(
                function (data) {
                   var times = data.result;
@@ -171,15 +179,21 @@
 
                      // First, we load the begin date and distance
                      // so the change trick works later
-                     $('#begin_date').val(data.begin_date);
-                     $('#brevet_dist_km').val(data.brevet_distance);
+                     if (!data.start_time) {
+                        return
+                     }
+                     $('#begin_date').val(data.start_time);
+                     $('#brevet_dist_km').val(data.length);
 
                      // again, since these are correctly ordered, we
                      // can just loop over them and update the km value
                      inputs = $('input[name="km"]')
                      for (var i = 0; i < inputs.length; i++) {
-                        if (i < data.items.length) {
-                           inputs.eq(i).val(data.items[i])
+                        if (i < data.checkpoints.length) {
+                           parent = inputs.eq(i).parent().parent()
+                           inputs.eq(i).val(data.checkpoints[i].distance)
+                           stuff = parent.children('td')
+                           stuff.children('input[name=location]').eq(0).val(data.checkpoints[i].location)
                         } else {
                            // If we have more fields than values in our db response
                            // clear that field
@@ -198,9 +212,9 @@
                   
                   // Initializing our data structure
                   post_data = {
-                     begin_date: $('#begin_date').val(),
-                     brevet_distance: $("#brevet_dist_km").val(),
-                     items: []
+                     start_time: $('#begin_date').val(),
+                     length: $("#brevet_dist_km").val(),
+                     checkpoints: []
                   }
 
                   // Grabbing all the input fields
@@ -209,17 +223,27 @@
 
                   for (var i = 0; i < inputs.length; i++) {
                      // Only capture the non empty fields
-                     if (inputs[i].value != '') {
-                        post_data.items.push(parseFloat(inputs[i].value))
+                     if (inputs.eq(i).val() != "" ) {
+                        parent = inputs.eq(i).parent().parent()
+                        stuff = parent.children('td')
+                        console.log(stuff)
+                        checkpoint = {
+                           distance: parseFloat(inputs[i].value),
+                           location: stuff.children('input[name=location]').eq(0).val(),
+                           open_time: stuff.children('input[name=open]').eq(0).val(),
+                           close_time: stuff.children('input[name=close]').eq(0).val()
+                        }
+                        post_data.checkpoints.push(checkpoint)
                      }
                   }
                   // Check for errors before sending
-                  if (post_data.items.length == 0) {
+                  if (post_data.checkpoints.length == 0) {
                      alert("No distances to save!")
                      return
                   }
                   
                   // Post them to the server
+                  console.log(JSON.stringify(post_data))
                   $.ajax({
                      type: 'POST',
                      url: SAVE_URL,
@@ -227,9 +251,8 @@
                      contentType: "application/json",
                      dataType: 'json'
                   });
-
                   //clear the fields
-                  inputs = $('input[name="km"]')
+                  inputs = $('input')
                   for (var i = 0; i < inputs.length; i++) {
                      // Clear the fields
                      inputs.eq(i).val("")
